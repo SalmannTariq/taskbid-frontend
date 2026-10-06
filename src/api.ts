@@ -53,6 +53,16 @@ export async function createTask(task: CreateTaskInput) {
   return response.data;
 }
 
+export async function updateTaskStatus(taskId: number, status: string, changedBy: number) {
+  const response = await client.patch<TaskType>(`/tasks/${taskId}/status`, { status, changedBy });
+  return response.data;
+}
+
+export async function assignTask(taskId: number, changedBy: number) {
+  const response = await client.post(`/tasks/${taskId}/assign`, { changedBy });
+  return response.data;
+}
+
 export async function listBids(taskId: number) {
   const response = await client.get<BidType[]>(`/tasks/${taskId}/bids`);
   return response.data;
