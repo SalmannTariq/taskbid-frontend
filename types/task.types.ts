@@ -3,7 +3,16 @@ export type TaskType = {
   title: string;
   description: string;
   estimatedComplexity: number;
-  createdBy: number;
+  createdBy:{
+    id: number;
+    name: string;
+    email: string;
+  };
+  assignee?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
   deadline: string;
   status: string;
   createdAt: string;
