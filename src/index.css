@@ -90,12 +90,19 @@ h1 {
   color: #4d4d4d;
 }
 
-input {
+input,
+select,
+textarea {
   width: 100%;
   border: 1px solid #e2e2e2;
   border-radius: 8px;
   background: #fff;
   padding: 10px 12px;
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
 }
 
 .row {
@@ -137,6 +144,72 @@ input {
 
 .account .lede {
   margin-top: -6px;
+}
+
+.tasks {
+  width: min(720px, 100%);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tasks-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tasks .lede {
+  margin-top: -8px;
+}
+
+.tasks .panel {
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.text-btn {
+  border: 0;
+  background: transparent;
+  color: #5c5c5c;
+  cursor: pointer;
+  padding: 6px 0;
+}
+
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-list li {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.task-list h2 {
+  font-size: 16px;
+}
+
+.task-list p {
+  margin-top: 4px;
+}
+
+.meta {
+  color: #6b6b6b;
+  font-size: 13px;
 }
 
 :focus-visible {
