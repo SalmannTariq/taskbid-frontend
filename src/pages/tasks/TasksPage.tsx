@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { assignTask, errorMessage, listTasks, updateTaskStatus } from "../../api";
+import { errorMessage, listTasks } from "../../api";
 import { TaskDetailModal } from "../../components/tasks/TaskDetailModal";
 import { TaskFormModal } from "../../components/tasks/TaskFormModal";
-import { nextAction } from "../../components/tasks/statusAction";
 import { complexityLabel, complexityTone, formatDate, labelFor } from "../../components/tasks/taskLabels";
 import { useSession } from "../../session";
 import type { TaskType } from "../../../types/task.types";
@@ -27,8 +26,6 @@ export function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [selected, setSelected] = useState<TaskType | null>(null);
-  const [savingId, setSavingId] = useState<number | null>(null);
-  const [actionError, setActionError] = useState<{ id: number; message: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,26 +70,6 @@ export function TasksPage() {
     }
   }
 
-  async function advance(task: TaskType) {
-    if (!user) return;
-    const action = nextAction(task, user.id);
-    if (!action) return;
-    setSavingId(task.id);
-    setActionError(null);
-    try {
-      if (action.run === "assign") {
-        await assignTask(task.id, user.id);
-      } else {
-        await updateTaskStatus(task.id, action.status, user.id);
-      }
-      await refresh(selected?.id);
-    } catch (err: unknown) {
-      setActionError({ id: task.id, message: errorMessage(err, "Could not update the status.") });
-    } finally {
-      setSavingId(null);
-    }
-  }
-
   return (
     <section className="workspace">
       <header className="queue-head">
@@ -126,40 +103,36 @@ export function TasksPage() {
                 <span>{items.length}</span>
               </header>
               {items.length === 0 ? <p className="lane-empty">No tasks</p> : null}
-              {items.map((task) => {
-                const action = user ? nextAction(task, user.id) : null;
-                return (
-                  <article className="queue-card" key={task.id}>
-                    <button type="button" className="card-open" onClick={() => setSelected(task)}>
-                      <span className={`chip chip-${complexityTone(task.estimatedComplexity)}`}>
-                        {complexityLabel(task.estimatedComplexity)}
-                      </span>
-                      <h3>{task.title}</h3>
-                      <p className="card-note">{task.description}</p>
-                      <p className="meta">Due {formatDate(task.deadline)}</p>
-                      <p className="creator">Created by : {task.createdBy?.name}</p>
-                    </button>
-                    {action ? (
-                      <button
-                        type="button"
-                        className="btn card-action"
-                        disabled={savingId === task.id}
-                        onClick={() => void advance(task)}
-                      >
-                        {savingId === task.id ? "Saving…" : action.label}
-                      </button>
-                    ) : null}
-                    {actionError?.id === task.id ? <p className="error" role="alert">{actionError.message}</p> : null}
-                  </article>
-                );
-              })}
+              {items.map((task) => (
+                <article className="queue-card" key={task.id}>
+                  <button type="button" className="card-open" onClick={() => setSelected(task)}>
+                    <span className={`chip chip-${complexityTone(task.estimatedComplexity)}`}>
+                      {complexityLabel(task.estimatedComplexity)}
+                    </span>
+                    <h3>{task.title}</h3>
+                    <p className="meta"> Total bids: {task.bidCount}</p>
+                    <p className="meta">
+                      {task.lowestBid == null ? "Lowest bid: none" : `Lowest bid : ${task.lowestBid} h`}
+                    </p>
+                    <p className="meta">Due {formatDate(task.deadline)}</p>
+                    <p className="creator">Created by : {task.createdBy?.name}</p>
+                  </button>
+                </article>
+              ))}
             </section>
           );
         })}
       </div>
 
       {adding ? <TaskFormModal onClose={() => setAdding(false)} onCreated={refresh} /> : null}
-      {selected ? <TaskDetailModal task={selected} onClose={() => setSelected(null)} /> : null}
+      {selected && user ? (
+        <TaskDetailModal
+          task={selected}
+          userId={user.id}
+          onClose={() => setSelected(null)}
+          onBidPlaced={() => refresh(selected.id)}
+        />
+      ) : null}
     </section>
   );
 }
