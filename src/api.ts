@@ -1,4 +1,6 @@
 import axios, { isAxiosError } from "axios";
+import type { BidType } from "./types/bid.types";
+import type { DashboardStats } from "./types/dashboard.types";
 import type { CreateTaskInput, TaskType } from "../types/task.types";
 import type { UserType, SessionUser } from "../types/user.types";
 
@@ -48,6 +50,16 @@ export async function listTasks() {
 
 export async function createTask(task: CreateTaskInput) {
   const response = await client.post<TaskType>("/tasks", task);
+  return response.data;
+}
+
+export async function listBids(taskId: number) {
+  const response = await client.get<BidType[]>(`/tasks/${taskId}/bids`);
+  return response.data;
+}
+
+export async function dashboardStats() {
+  const response = await client.get<DashboardStats>("/dashboard/stats");
   return response.data;
 }
 
