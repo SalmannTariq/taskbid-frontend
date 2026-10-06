@@ -1,19 +1,29 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { createTask, errorMessage, listTasks, logout } from "../../api";
-import { Brand } from "../../components/Field";
-import { useSession } from "../../session";
+import { useEffect, useMemo, useState } from "react";
+import { errorMessage, listTasks } from "../../api";
+import { TaskDetailModal } from "../../components/tasks/TaskDetailModal";
+import { TaskFormModal } from "../../components/tasks/TaskFormModal";
+import { complexityLabel, complexityTone, formatDate, labelFor } from "../../components/tasks/taskLabels";
 import type { TaskType } from "../../../types/task.types";
 
+const columns = [
+  { status: "draft", label: "Draft", tone: "pink" },
+  { status: "open", label: "Open", tone: "peach" },
+  { status: "bidding_closed", label: "Bidding closed", tone: "sky" },
+  { status: "assigned", label: "Assigned", tone: "mint" },
+  { status: "in_progress", label: "In progress", tone: "peach" },
+  { status: "review", label: "In review", tone: "sky" },
+  { status: "done", label: "Done", tone: "lilac" },
+];
+
+const hiddenStatuses = new Set(["completed", "cancelled"]);
+
 export function TasksPage() {
-  const { user, signOut } = useSession();
   const [tasks, setTasks] = useState<TaskType[]>([]);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [complexity, setComplexity] = useState("3");
-  const [deadline, setDeadline] = useState("");
+  const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [selected, setSelected] = useState<TaskType | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,111 +42,83 @@ export function TasksPage() {
     };
   }, []);
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!user) return;
-    if (!title.trim() || !description.trim() || !deadline) {
-      setError("Title, description, and deadline are required.");
-      return;
-    }
-    const estimatedComplexity = Number(complexity);
-    if (!Number.isInteger(estimatedComplexity) || estimatedComplexity < 1 || estimatedComplexity > 5) {
-      setError("Complexity must be from 1 to 5.");
-      return;
-    }
+  const visible = useMemo(() => {
+    const text = query.trim().toLowerCase();
+    return tasks.filter((task) => {
+      if (hiddenStatuses.has(task.status)) return false;
+      if (!text) return true;
+      return task.title.toLowerCase().includes(text);
+    });
+  }, [tasks, query]);
 
-    setSaving(true);
-    setError(null);
-    try {
-      await createTask({
-        title: title.trim(),
-        description: description.trim(),
-        estimatedComplexity,
-        deadline: new Date(`${deadline}T00:00:00`).toISOString(),
-        createdBy: user.id,
-      });
-      setTasks(await listTasks());
-      setTitle("");
-      setDescription("");
-      setDeadline("");
-    } catch (err: unknown) {
-      setError(errorMessage(err, "Could not create the task."));
-    } finally {
-      setSaving(false);
-    }
-  }
+  const board = useMemo(() => {
+    const known = new Set(columns.map((column) => column.status));
+    const extra = [...new Set(visible.map((task) => task.status).filter((status) => !known.has(status) && !hiddenStatuses.has(status)))];
+    return [
+      ...columns,
+      ...extra.map((status) => ({ status, label: labelFor(status), tone: "gray" })),
+    ];
+  }, [visible]);
 
-  async function onSignOut() {
-    try {
-      await logout();
-    } catch (err: unknown) {
-      setError(errorMessage(err, "Could not sign out."));
-      return;
-    }
-    signOut();
+  async function refresh() {
+    setTasks(await listTasks());
   }
 
   return (
-    <section className="tasks">
-      <header className="tasks-head">
-        <Brand />
-        <button type="button" className="text-btn" onClick={() => void onSignOut()}>
-          Sign out
-        </button>
-      </header>
-      <h1>Tasks</h1>
-      <p className="lede">Add a task, then see every task already saved.</p>
-
-      <form className="panel" onSubmit={onSubmit}>
-        <label className="field">
-          <span>Title</span>
-          <input value={title} onChange={(event) => setTitle(event.target.value)} />
-        </label>
-        <label className="field">
-          <span>Description</span>
-          <textarea rows={3} value={description} onChange={(event) => setDescription(event.target.value)} />
-        </label>
-        <div className="row">
-          <label className="field">
-            <span>Complexity</span>
-            <select value={complexity} onChange={(event) => setComplexity(event.target.value)}>
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Deadline</span>
-            <input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} />
-          </label>
+    <section className="workspace">
+      <header className="queue-head">
+        <div>
+          <h1>Task queue</h1>
+          <p className="lede">Each status has its own column.</p>
         </div>
-        {error && <p className="error" role="alert">{error}</p>}
-        <button type="submit" className="btn" disabled={saving}>
-          {saving ? "Saving…" : "Add task"}
-        </button>
-      </form>
+        <div className="queue-tools">
+          <input
+            className="search"
+            value={query}
+            placeholder="Search task"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <button type="button" className="btn add-btn" onClick={() => setAdding(true)}>
+            + Add task
+          </button>
+        </div>
+      </header>
 
+      {error && <p className="error" role="alert">{error}</p>}
       {loading ? <p className="muted">Loading tasks…</p> : null}
-      {!loading && tasks.length === 0 ? <p className="muted">No tasks yet.</p> : null}
-      <ul className="task-list">
-        {tasks.map((task) => (
-          <li key={task.id}>
-            <h2>{task.title}</h2>
-            <p>{task.description}</p>
-            <p className="meta">
-              {task.status} · Complexity {task.estimatedComplexity} · Due {formatDate(task.deadline)}
-            </p>
-          </li>
-        ))}
-      </ul>
+
+      <div className="board">
+        {board.map((column) => {
+          const items = visible.filter((task) => task.status === column.status);
+          return (
+            <section className={`lane lane-${column.tone}`} key={column.status}>
+              <header>
+                <h2>{column.label}</h2>
+                <span>{items.length}</span>
+              </header>
+              {items.length === 0 ? <p className="lane-empty">No tasks</p> : null}
+              {items.map((task) => (
+                <button
+                  type="button"
+                  className="queue-card"
+                  key={task.id}
+                  onClick={() => setSelected(task)}
+                >
+                  <span className={`chip chip-${complexityTone(task.estimatedComplexity)}`}>
+                    {complexityLabel(task.estimatedComplexity)}
+                  </span>
+                  <h3>{task.title}</h3>
+                  <p className="card-note">{task.description}</p>
+                  <p className="meta">Due {formatDate(task.deadline)}</p>
+                </button>
+              ))}
+            </section>
+          );
+        })}
+      </div>
+
+      {adding ? <TaskFormModal onClose={() => setAdding(false)} onCreated={refresh} /> : null}
+      {selected ? <TaskDetailModal task={selected} onClose={() => setSelected(null)} /> : null}
     </section>
   );
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
