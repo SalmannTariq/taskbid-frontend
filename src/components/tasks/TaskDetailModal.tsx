@@ -196,7 +196,6 @@ export function TaskDetailModal({
             <li className="bid-row" key={bid.id}>
               <span>{bid.userName || `User ${bid.userId}`}</span>
               <span>{bid.hoursOffered} h</span>
-              <span>{labelFor(bid.status)}</span>
             </li>
           ))}
         </ul>
