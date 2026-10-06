@@ -3,7 +3,6 @@ export type BidType = {
   taskId: number;
   userId: number;
   hoursOffered: number;
-  status: string;
   userName: string;
   createdAt: string;
 };
