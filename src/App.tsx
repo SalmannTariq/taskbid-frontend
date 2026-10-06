@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
-import { currentUser, logout } from "./api";
-import { AppShell } from "./components/layout/AppShell";
+import { currentUser } from "./api";
 import { AccountPage } from "./pages/AccountPage";
-import { DashboardPage } from "./pages/DashboardPage";
 import { SignInPage } from "./pages/SignInPage";
 import { SignUpPage } from "./pages/SignUpPage";
-import { TaskBoardPage } from "./pages/TaskBoardPage";
-import { TaskDetailPage } from "./pages/TaskDetailPage";
 import { navigate, replace, usePath } from "./router";
 import type { SessionUser } from "../types/user.types";
 
@@ -14,8 +10,6 @@ export default function App() {
   const path = usePath();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [ready, setReady] = useState(false);
-  const taskId = path.startsWith("/tasks/") ? path.slice("/tasks/".length) : null;
-  const isAuthPath = path === "/signin" || path === "/signup";
 
   useEffect(() => {
     let cancelled = false;
@@ -36,47 +30,36 @@ export default function App() {
 
   useEffect(() => {
     if (!ready) return;
-    if (user && isAuthPath) replace("/");
-  }, [ready, user, isAuthPath]);
+    if (user && (path === "/signin" || path === "/signup")) {
+      replace("/");
+      return;
+    }
+    if (!user && path !== "/signin" && path !== "/signup") {
+      replace("/signin");
+    }
+  }, [ready, user, path]);
 
   function onSuccess(session: SessionUser) {
     setUser(session);
     navigate("/");
   }
 
-  async function onSignOut() {
-    try {
-      await logout();
-    } catch {
-      // The sample screens stay available either way.
-    }
-    setUser(null);
-  }
-
-  if (isAuthPath) {
-    return (
-      <main className="page">
-        {!ready || user ? (
-          <p className="muted">Loading…</p>
-        ) : path === "/signin" ? (
-          <SignInPage onSuccess={onSuccess} />
-        ) : (
-          <SignUpPage onSuccess={onSuccess} />
-        )}
-      </main>
+  let page = <p className="muted">Loading…</p>;
+  if (ready && user && path === "/") {
+    page = (
+      <AccountPage
+        user={user}
+        onSignOut={() => {
+          setUser(null);
+          navigate("/signin");
+        }}
+      />
     );
+  } else if (ready && !user && path === "/signin") {
+    page = <SignInPage onSuccess={onSuccess} />;
+  } else if (ready && !user && path === "/signup") {
+    page = <SignUpPage onSuccess={onSuccess} />;
   }
 
-  let page = <TaskBoardPage />;
-  if (path === "/dashboard") page = <DashboardPage />;
-  else if (taskId) page = <TaskDetailPage id={taskId} />;
-  else if (path === "/account" && user) {
-    page = <AccountPage user={user} onSignOut={() => void onSignOut()} />;
-  }
-
-  return (
-    <AppShell path={path} user={user} onSignOut={() => void onSignOut()}>
-      {page}
-    </AppShell>
-  );
+  return <main className="page">{page}</main>;
 }
