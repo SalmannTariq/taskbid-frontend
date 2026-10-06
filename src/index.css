@@ -424,6 +424,32 @@ textarea {
   font-size: 15px;
 }
 
+.bid-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.capacity {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  margin: 0;
+  background: #f3fbf8;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.capacity dt {
+  color: #4d4d4d;
+}
+
+.capacity dd {
+  margin: 0;
+  font-weight: 650;
+  text-align: right;
+}
+
 .bids {
   list-style: none;
   margin: 0;

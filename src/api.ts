@@ -2,7 +2,7 @@ import axios, { isAxiosError } from "axios";
 import type { BidType } from "./types/bid.types";
 import type { DashboardStats } from "./types/dashboard.types";
 import type { CreateTaskInput, TaskType } from "../types/task.types";
-import type { UserType, SessionUser } from "../types/user.types";
+import type { UserType, SessionUser, Workload } from "../types/user.types";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -60,6 +60,16 @@ export async function updateTaskStatus(taskId: number, status: string, changedBy
 
 export async function assignTask(taskId: number, changedBy: number) {
   const response = await client.post(`/tasks/${taskId}/assign`, { changedBy });
+  return response.data;
+}
+
+export async function userWorkload(userId: number) {
+  const response = await client.get<Workload>(`/users/${userId}/workload`);
+  return response.data;
+}
+
+export async function placeBid(taskId: number, userId: number, hoursOffered: number) {
+  const response = await client.post<BidType>(`/tasks/${taskId}/bids`, { userId, hoursOffered });
   return response.data;
 }
 

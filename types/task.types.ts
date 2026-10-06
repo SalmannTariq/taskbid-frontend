@@ -16,6 +16,8 @@ export type TaskType = {
   deadline: string;
   status: string;
   createdAt: string;
+  bidCount: number;
+  lowestBid: number | null;
 };
 
 export type CreateTaskInput = {

@@ -4,5 +4,6 @@ export type BidType = {
   userId: number;
   hoursOffered: number;
   status: string;
+  userName: string;
   createdAt: string;
 };
