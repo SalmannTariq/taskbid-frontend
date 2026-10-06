@@ -1,4 +1,5 @@
 import axios, { isAxiosError } from "axios";
+import type { CreateTaskInput, TaskType } from "../types/task.types";
 import type { UserType, SessionUser } from "../types/user.types";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
@@ -40,11 +41,22 @@ export async function currentUser() {
   }
 }
 
+export async function listTasks() {
+  const response = await client.get<TaskType[]>("/tasks");
+  return response.data;
+}
+
+export async function createTask(task: CreateTaskInput) {
+  const response = await client.post<TaskType>("/tasks", task);
+  return response.data;
+}
+
 export function errorMessage(err: unknown, fallback: string) {
   if (isAxiosError(err)) {
     const data: unknown = err.response?.data;
-    if (data && typeof data === "object" && "message" in data && typeof data.message === "string") {
-      return data.message;
+    if (data && typeof data === "object") {
+      if ("message" in data && typeof data.message === "string") return data.message;
+      if ("error" in data && typeof data.error === "string") return data.error;
     }
   }
   return fallback;

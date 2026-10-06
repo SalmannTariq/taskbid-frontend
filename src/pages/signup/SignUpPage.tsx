@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { errorMessage, register } from "../api";
-import { Brand, Field } from "../components/Field";
-import { followLink } from "../router";
-import type { UserType } from "../../types/user.types";
-import type { SessionUser } from "../../types/user.types";
+import { Link } from "react-router-dom";
+import { errorMessage, register } from "../../api";
+import { Brand, Field } from "../../components/Field";
+import { useSession } from "../../session";
+import type { UserType } from "../../../types/user.types";
 
-export function SignUpPage({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
+export function SignUpPage() {
+  const { signIn } = useSession();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,7 +42,7 @@ export function SignUpPage({ onSuccess }: { onSuccess: (user: SessionUser) => vo
         hourlyRate,
         maxHours,
       });
-      onSuccess(result.user);
+      signIn(result.user);
     } catch (err: unknown) {
       setError(errorMessage(err, "Could not create the account."));
     } finally {
@@ -91,9 +92,7 @@ export function SignUpPage({ onSuccess }: { onSuccess: (user: SessionUser) => vo
       </button>
       <p className="switch">
         Already have an account?{" "}
-        <a href="/signin" onClick={(event) => followLink(event, "/signin")}>
-          Sign in
-        </a>
+        <Link to="/signin">Sign in</Link>
       </p>
     </form>
   );

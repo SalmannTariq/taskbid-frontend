@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { errorMessage, login } from "../api";
-import { Brand, Field } from "../components/Field";
-import { followLink } from "../router";
-import type { SessionUser } from "../../types/user.types";
-export function SignInPage({ onSuccess }: { onSuccess: (user: SessionUser) => void }) {
+import { Link } from "react-router-dom";
+import { errorMessage, login } from "../../api";
+import { Brand, Field } from "../../components/Field";
+import { useSession } from "../../session";
+
+export function SignInPage() {
+  const { signIn } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +21,7 @@ export function SignInPage({ onSuccess }: { onSuccess: (user: SessionUser) => vo
     setBusy(true);
     setError(null);
     try {
-      onSuccess(await login(email.trim(), password));
+      signIn(await login(email.trim(), password));
     } catch (err: unknown) {
       setError(errorMessage(err, "Could not sign in."));
     } finally {
@@ -46,9 +48,7 @@ export function SignInPage({ onSuccess }: { onSuccess: (user: SessionUser) => vo
       </button>
       <p className="switch">
         No account yet?{" "}
-        <a href="/signup" onClick={(event) => followLink(event, "/signup")}>
-          Sign up
-        </a>
+        <Link to="/signup">Sign up</Link>
       </p>
     </form>
   );
