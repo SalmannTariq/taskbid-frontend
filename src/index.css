@@ -334,9 +334,11 @@ textarea {
   font-weight: 650;
 }
 
-.chip-low { background: #e7f6ee; color: #1f4b3a; }
-.chip-medium { background: #fff4d6; color: #8a5a12; }
-.chip-high { background: #fde8e8; color: #9b2c2c; }
+.chip-trivial { background: #e7f6ee; color: #1f4b3a; }
+.chip-easy { background: #fff4d6; color: #8a5a12; }
+.chip-moderate { background: #fde8e8; color: #9b2c2c; }
+.chip-complex { background: #fde8e8; color: #9b2c2c; }
+.chip-very-complex { background: #f3e8ff; color: #5c2d8d; }
 
 .meta {
   color: #6b6b6b;
