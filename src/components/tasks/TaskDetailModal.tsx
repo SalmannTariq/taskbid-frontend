@@ -28,9 +28,18 @@ export function TaskDetailModal({
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const action = nextAction(task, userId);
+  const [now, setNow] = useState(() => Date.now());
   const alreadyBid = bids?.some((bid) => bid.userId === userId) ?? false;
-  const canBid = task.status === "open" && Number(task.createdBy?.id) !== userId && !alreadyBid;
+  const deadlineOpen = new Date(task.deadline).getTime() > now;
+  const canBid = task.status === "open" && deadlineOpen && Number(task.createdBy?.id) !== userId && !alreadyBid;
   const remaining = workload?.remainingCapacity ?? 0;
+
+  useEffect(() => {
+    const closesAt = new Date(task.deadline).getTime() - Date.now();
+    if (closesAt <= 0) return;
+    const timer = window.setTimeout(() => setNow(Date.now()), closesAt);
+    return () => window.clearTimeout(timer);
+  }, [task.deadline]);
 
   useEffect(() => {
     let cancelled = false;
