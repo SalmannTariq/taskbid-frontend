@@ -65,11 +65,11 @@ export function TaskFormModal({
         <label className="field">
           <span>Complexity</span>
           <select value={complexity} onChange={(event) => setComplexity(event.target.value)}>
-            <option value="1">1 — low</option>
-            <option value="2">2</option>
-            <option value="3">3 — medium</option>
-            <option value="4">4</option>
-            <option value="5">5 — high</option>
+            <option value="1">1 — Trivial</option>
+            <option value="2">2 — Easy</option>
+            <option value="3">3 — Moderate</option>
+            <option value="4">4 — Complex</option>
+            <option value="5">5 — Very COmplex</option>
           </select>
         </label>
         <label className="field">
