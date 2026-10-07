@@ -1,4 +1,4 @@
-import type { TaskType } from "../../../types/task.types";
+import type { TaskType } from "../../types/task.types";
 
 export function nextAction(task: TaskType, userId: number) {
   const creator = Number(task.createdBy?.id) === userId;

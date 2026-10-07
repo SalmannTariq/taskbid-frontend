@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { errorMessage, register } from "../../api";
 import { Brand, Field } from "../../components/Field";
 import { useSession } from "../../session";
-import type { UserType } from "../../../types/user.types";
+import type { UserType } from "../../types/user.types";
 
 export function SignUpPage() {
   const { signIn } = useSession();

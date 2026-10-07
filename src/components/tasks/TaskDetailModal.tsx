@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { assignTask, errorMessage, listBids, placeBid, updateTaskStatus, userWorkload } from "../../api";
+import { useSockets } from "../../hooks/useSockets";
 import type { BidType } from "../../types/bid.types";
-import type { TaskType } from "../../../types/task.types";
-import type { Workload } from "../../../types/user.types";
+import type { TaskType } from "../../types/task.types";
+import type { Workload } from "../../types/user.types";
 import { Modal } from "../Modal";
 import { nextAction } from "./statusAction";
 import { complexityLabel, formatDate, labelFor } from "./taskLabels.ts";
@@ -44,6 +45,17 @@ export function TaskDetailModal({
       cancelled = true;
     };
   }, [task.id, task.status]);
+
+  useSockets(() => {
+    listBids(task.id)
+      .then(setBids)
+      .catch((err: unknown) => setError(errorMessage(err, "Could not load bids.")));
+    if (task.status === "open" && Number(task.createdBy?.id) !== userId) {
+      userWorkload(userId)
+        .then(setWorkload)
+        .catch((err: unknown) => setBidError(errorMessage(err, "Could not load your capacity.")));
+    }
+  });
 
   useEffect(() => {
     if (!canBid) return;

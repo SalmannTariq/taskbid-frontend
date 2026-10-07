@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { errorMessage, listTasks } from "../../api";
+import { useSockets } from "../../hooks/useSockets";
 import { TaskDetailModal } from "../../components/tasks/TaskDetailModal";
 import { TaskFormModal } from "../../components/tasks/TaskFormModal";
 import { complexityLabel, complexityTone, formatDate, labelFor } from "../../components/tasks/taskLabels";
 import { useSession } from "../../session";
-import type { TaskType } from "../../../types/task.types";
+import type { TaskType } from "../../types/task.types";
 
 const columns = [
   { status: "draft", label: "Draft", tone: "pink" },
@@ -26,6 +27,8 @@ export function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [selected, setSelected] = useState<TaskType | null>(null);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
 
   useEffect(() => {
     let cancelled = false;
@@ -69,6 +72,12 @@ export function TasksPage() {
       setSelected(rows.find((task) => task.id === keepId) ?? null);
     }
   }
+
+  useSockets(() => {
+    void refresh(selectedRef.current?.id).catch((err: unknown) => {
+      setError(errorMessage(err, "Could not load tasks."));
+    });
+  });
 
   return (
     <section className="workspace">

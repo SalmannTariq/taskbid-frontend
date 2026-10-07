@@ -1,8 +1,8 @@
 import axios, { isAxiosError } from "axios";
 import type { BidType } from "./types/bid.types";
 import type { DashboardStats } from "./types/dashboard.types";
-import type { CreateTaskInput, TaskType } from "../types/task.types";
-import type { UserType, SessionUser, Workload } from "../types/user.types";
+import type { CreateTaskInput, TaskType } from "./types/task.types";
+import type { UserType, SessionUser, Workload } from "./types/user.types";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
