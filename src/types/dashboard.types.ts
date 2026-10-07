@@ -1,10 +1,6 @@
 export type DashboardStats = {
-  tasks: Record<string, number>;
-  bids: Record<string, number>;
-  users: {
-    total: number;
-    totalCapacityHours: number;
-    totalWorkloadHours: number;
-    totalRemainingCapacityHours: number;
-  };
+  tasksByStatus: { status: string; count: number }[];
+  averageBidByComplexity: { complexity: number; averageBid: number | null }[];
+  topUsers: { id: number; name: string; completedTasks: number }[];
+  tasksWithZeroBids: { id: number; title: string; status: string; deadline: string }[];
 };
