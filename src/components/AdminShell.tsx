@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { errorMessage, logout } from "../api";
+import { useSockets } from "../hooks/useSockets";
 import { useSession } from "../session";
 import { Brand } from "./Field";
 
 export function AdminShell() {
   const { user, signOut } = useSession();
+  useSockets();
   const [error, setError] = useState<string | null>(null);
 
   async function onSignOut() {

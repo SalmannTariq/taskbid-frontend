@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { errorMessage, logout } from "../api";
 import { Brand } from "../components/Field";
-import type { SessionUser } from "../../types/user.types";
+import type { SessionUser } from "../types/user.types";
 
 export function AccountPage({ user, onSignOut }: { user: SessionUser; onSignOut: () => void }) {
   const [busy, setBusy] = useState(false);

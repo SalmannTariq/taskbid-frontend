@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { currentUser } from "./api";
-import type { SessionUser } from "../types/user.types";
+import type { SessionUser } from "./types/user.types";
 
 type Session = {
   user: SessionUser | null;

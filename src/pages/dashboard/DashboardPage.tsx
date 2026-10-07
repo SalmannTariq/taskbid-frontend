@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { dashboardStats, errorMessage } from "../../api";
+import { useSockets } from "../../hooks/useSockets";
 import { labelFor } from "../../components/tasks/taskLabels";
 import type { DashboardStats } from "../../types/dashboard.types";
 
@@ -21,6 +22,12 @@ export function DashboardPage() {
       cancelled = true;
     };
   }, []);
+
+  useSockets(() => {
+    dashboardStats()
+      .then(setStats)
+      .catch((err: unknown) => setError(errorMessage(err, "Could not load the dashboard.")));
+  });
 
   const taskBars = stats
     ? Object.entries(stats.tasks)
