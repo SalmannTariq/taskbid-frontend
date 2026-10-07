@@ -4,6 +4,7 @@ export interface ServerToClientEvents {
   changed: (data: { taskId: number }) => void;
   message: (data: { id: string; text: string; sender: string }) => void;
 }
+
 export interface ClientToServerEvents {
   message: (text: string) => void;
   joinRoom: (room: string) => void;
