@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { dashboardStats, errorMessage } from "../../api";
 import { useSockets } from "../../hooks/useSockets";
-import { complexityLabel, formatDateTime, labelFor } from "../../components/tasks/taskLabels";
+import { complexityLabel, labelFor } from "../../components/tasks/taskLabels";
 import type { DashboardStats } from "../../types/dashboard.types";
+
+function statusName(status: string) {
+  const label = labelFor(status);
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 export function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -28,8 +34,10 @@ export function DashboardPage() {
       .catch((err: unknown) => setError(errorMessage(err, "Could not load the dashboard.")));
   });
 
-  const largest = stats ? Math.max(1, ...stats.tasksByStatus.map((item) => item.count)) : 1;
   const taskTotal = stats ? stats.tasksByStatus.reduce((sum, item) => sum + item.count, 0) : 0;
+  const statusChart = stats
+    ? stats.tasksByStatus.map((item) => ({ name: labelFor(item.status), count: item.count }))
+    : [];
 
   return (
     <section className="workspace">
@@ -43,23 +51,7 @@ export function DashboardPage() {
       {!stats && !error ? <p className="muted">Loading dashboard…</p> : null}
       {stats ? (
         <div className="dash-grid">
-          <article className="dash-card">
-            <h2>Tasks by status</h2>
-            <p className="muted">{taskTotal} total</p>
-            <ul className="status-list">
-              {stats.tasksByStatus.map((item) => (
-                <li key={item.status}>
-                  <span>{labelFor(item.status)}</span>
-                  <span className="status-track" aria-hidden="true">
-                    <span style={{ width: `${(item.count / largest) * 100}%` }} />
-                  </span>
-                  <strong>{item.count}</strong>
-                </li>
-              ))}
-            </ul>
-          </article>
-
-          <article className="dash-card">
+                   <article className="dash-card">
             <h2>Average bid by complexity</h2>
             <ul className="plain-list">
               {stats.averageBidByComplexity.map((item) => (
@@ -86,17 +78,45 @@ export function DashboardPage() {
 
           <article className="dash-card">
             <h2>No bids, deadline passed</h2>
-            {stats.tasksWithZeroBids.length === 0 ? <p className="muted">None right now.</p> : null}
+            {stats.tasksWithZeroBids.every((item) => item.count === 0) ? (
+              <p className="muted">None right now.</p>
+            ) : (
+              <ul className="plain-list">
+                {stats.tasksWithZeroBids.map((item) => (
+                  <li key={item.complexity}>
+                    <span>{complexityLabel(item.complexity)} ({item.complexity})</span>
+                    <strong>{item.count}</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </article>
+          <article className="dash-card">
+            <h2>Tasks by status</h2>
+            <p className="muted">{taskTotal} total</p>
             <ul className="plain-list">
-              {stats.tasksWithZeroBids.map((task) => (
-                <li key={task.id}>
-                  <span>
-                    {task.title}
-                    <small>{labelFor(task.status)} · {formatDateTime(task.deadline)}</small>
-                  </span>
+              {stats.tasksByStatus.map((item) => (
+                <li key={item.status}>
+                  <span>{statusName(item.status)}</span>
+                  <strong>{item.count}</strong>
                 </li>
               ))}
             </ul>
+          </article>
+
+          <article className="dash-card dash-wide">
+            <h2>Tasks by status</h2>
+            <div className="chart-frame">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={statusChart} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+                  <CartesianGrid stroke="#e6e6e6" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fill: "#5c5c5c", fontSize: 12 }} />
+                  <YAxis type="category" dataKey="name" width={108} tick={{ fill: "#5c5c5c", fontSize: 12 }} />
+                  <Tooltip cursor={{ fill: "#f3fbf8" }} />
+                  <Bar dataKey="count" name="Tasks" fill="#1f4b3a" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </article>
         </div>
       ) : null}

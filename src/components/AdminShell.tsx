@@ -1,24 +1,11 @@
-import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { errorMessage, logout } from "../api";
 import { useSockets } from "../hooks/useSockets";
 import { useSession } from "../session";
 import { Brand } from "./Field";
 
 export function AdminShell() {
-  const { user, signOut } = useSession();
+  const { users, user, ready, error, switchUser } = useSession();
   useSockets();
-  const [error, setError] = useState<string | null>(null);
-
-  async function onSignOut() {
-    try {
-      await logout();
-    } catch (err: unknown) {
-      setError(errorMessage(err, "Could not sign out."));
-      return;
-    }
-    signOut();
-  }
 
   return (
     <div className="admin">
@@ -32,13 +19,21 @@ export function AdminShell() {
             Task queue
           </NavLink>
         </nav>
+        <label className="field side-user">
+          <span>Acting as</span>
+          <select
+            value={user ? String(user.id) : ""}
+            disabled={!ready || users.length === 0}
+            onChange={(event) => switchUser(Number(event.target.value))}
+          >
+            {users.map((person) => (
+              <option key={person.id} value={person.id}>
+                {person.name}
+              </option>
+            ))}
+          </select>
+        </label>
         {error && <p className="error" role="alert">{error}</p>}
-        <div className="side-user">
-          <strong>{user?.name ?? user?.email}</strong>
-          <button type="button" className="text-btn" onClick={() => void onSignOut()}>
-            Sign out
-          </button>
-        </div>
       </aside>
       <Outlet />
     </div>
