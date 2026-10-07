@@ -6,7 +6,7 @@ import type { TaskType } from "../../types/task.types";
 import type { Workload } from "../../types/user.types";
 import { Modal } from "../Modal";
 import { nextAction } from "./statusAction";
-import { complexityLabel, formatDate, labelFor } from "./taskLabels.ts";
+import { complexityLabel, formatDate, formatDateTime, labelFor } from "./taskLabels.ts";
 
 export function TaskDetailModal({
   task,
@@ -146,8 +146,8 @@ export function TaskDetailModal({
         <dd>
           {complexityLabel(task.estimatedComplexity)} ({task.estimatedComplexity})
         </dd>
-        <dt>Deadline</dt>
-        <dd>{formatDate(task.deadline)}</dd>
+        <dt>Bid deadline</dt>
+        <dd>{formatDateTime(task.deadline)}</dd>
         <dt>Created by</dt>
         <dd>{task.createdBy?.name}</dd>
         <dt>Assigned to</dt>
