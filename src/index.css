@@ -150,13 +150,15 @@ textarea {
 
 .page:has(.admin) {
   display: block;
+  width: 100%;
   padding: 0;
 }
 
 .admin {
+  width: 100%;
   min-height: 100svh;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
   text-align: left;
   background: #f3fbf8;
 }
@@ -501,9 +503,70 @@ textarea {
   padding: 16px;
 }
 
-.chart-card h2 {
+.chart-card h2,
+.dash-card h2 {
   font-size: 16px;
   margin-bottom: 8px;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dash-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  min-width: 0;
+}
+
+.dash-card .muted {
+  margin-bottom: 10px;
+}
+
+.status-list,
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.status-list li,
+.plain-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.status-list li {
+  grid-template-columns: 110px minmax(0, 1fr) 24px;
+}
+
+.status-track {
+  display: block;
+  height: 8px;
+  background: #eef6f2;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.status-track span {
+  display: block;
+  height: 100%;
+  background: #1f4b3a;
+  border-radius: 99px;
+}
+
+.plain-list small {
+  display: block;
+  color: #6b6b6b;
+  font-size: 12px;
 }
 
 @media (max-width: 800px) {
@@ -521,8 +584,9 @@ textarea {
     align-items: stretch;
   }
 
-  .stats {
-    grid-template-columns: 1fr 1fr;
+  .stats,
+  .dash-grid {
+    grid-template-columns: 1fr;
   }
 }
 
