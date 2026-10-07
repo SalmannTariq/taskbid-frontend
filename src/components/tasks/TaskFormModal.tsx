@@ -21,8 +21,9 @@ export function TaskFormModal({
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (!user) return;
-    if (!title.trim() || !description.trim() || !deadline) {
-      setError("Title, description, and deadline are required.");
+    const closesAt = new Date(deadline);
+    if (!title.trim() || !description.trim() || !deadline || Number.isNaN(closesAt.getTime())) {
+      setError("Title, description, and bid deadline are required.");
       return;
     }
     const estimatedComplexity = Number(complexity);
@@ -38,7 +39,7 @@ export function TaskFormModal({
         title: title.trim(),
         description: description.trim(),
         estimatedComplexity,
-        deadline: new Date(`${deadline}T00:00:00`).toISOString(),
+        deadline: closesAt.toISOString(),
         createdBy: user.id,
       });
       await onCreated();
@@ -72,8 +73,13 @@ export function TaskFormModal({
           </select>
         </label>
         <label className="field">
-          <span>Deadline</span>
-          <input type="date" value={deadline} onChange={(event) => setDeadline(event.target.value)} />
+          <span>Bid deadline</span>
+          <input
+            type="datetime-local"
+            value={deadline}
+            onChange={(event) => setDeadline(event.target.value)}
+            required
+          />
         </label>
         {error && <p className="error" role="alert">{error}</p>}
         <button type="submit" className="btn" disabled={saving}>

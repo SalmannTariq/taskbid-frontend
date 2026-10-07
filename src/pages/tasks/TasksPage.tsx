@@ -3,7 +3,7 @@ import { errorMessage, listTasks } from "../../api";
 import { useSockets } from "../../hooks/useSockets";
 import { TaskDetailModal } from "../../components/tasks/TaskDetailModal";
 import { TaskFormModal } from "../../components/tasks/TaskFormModal";
-import { complexityLabel, complexityTone, formatDate, labelFor } from "../../components/tasks/taskLabels";
+import { complexityLabel, complexityTone, formatDateTime, labelFor } from "../../components/tasks/taskLabels";
 import { useSession } from "../../session";
 import type { TaskType } from "../../types/task.types";
 
@@ -123,7 +123,7 @@ export function TasksPage() {
                     <p className="meta">
                       {task.lowestBid == null ? "Lowest bid: none" : `Lowest bid : ${task.lowestBid} h`}
                     </p>
-                    <p className="meta">Due {formatDate(task.deadline)}</p>
+                    <p className="meta">Bid deadline {formatDateTime(task.deadline)}</p>
                     <p className="creator">Created by : {task.createdBy?.name}</p>
                   </button>
                 </article>
