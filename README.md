@@ -1,112 +1,108 @@
 # TaskBid
 
-## Why these rules live in the database
+TaskBid is a board for posting work, collecting hour bids, and moving a task from draft to done. There is no sign-in. The sidebar dropdown **Acting as** picks which person the app is using. That person creates tasks, places bids, and moves a task forward.
 
-Five bidding and status rules are enforced in Postgres, not in the request handlers:
+The page talks to the TaskBid API. Business rules live in Postgres. This README covers the app. The API README covers routes, locks, and migrations.
 
-- A user cannot bid on their own task.
-- A bid that would push the user over `max_capacity_hours` is rejected.
-- A bid cannot be inserted after bidding is closed, or after the bid deadline.
+## Run it
+
+Start the API first, then:
+
+```bash
+npm install
+npm run dev
+```
+
+Create `.env` in this folder:
+
+```
+VITE_BACKEND_URL=http://localhost:3000
+```
+
+Vite reads that value when it starts. The app opens at `http://localhost:5173`.
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Local dev server |
+| `npm run build` | Typecheck and production build |
+| `npm run preview` | Serve the production build |
+| `npm run lint` | Run ESLint |
+
+On Vercel, set `VITE_BACKEND_URL` to the public API address before the build. `vercel.json` sends every path to `index.html` so refresh works on `/tasks` and `/dashboard`.
+
+## Screens
+
+**Task queue** (`/tasks`) is a column for each status:
+
+`draft → open → bidding closed → assigned → in progress → review → done`
+
+A card shows complexity, title, bid count, lowest bid, deadline, and creator. Open a card for the description, the bid list, and the one next action that person is allowed to take.
+
+**Dashboard** (`/dashboard`) loads `GET /dashboard/stats` and shows:
+
+- tasks by status, as a Recharts bar chart and as a count list
+- average bid hours for complexity 1 through 5
+- the top 3 people by tasks marked done
+- how many tasks passed their deadline with zero bids, grouped by complexity
+
+## Acting as someone
+
+`GET /users` returns id, name, and email. The dropdown lists those people. The chosen id is saved in the browser as `taskbid-user-id`, so a refresh keeps the same person. It is not a password or a session cookie.
+
+What that person can do:
+
+| Status | Who | Action |
+|---|---|---|
+| draft | creator | Open task |
+| open | creator | Close bidding |
+| open, before the deadline | anyone except the creator | Place one bid, in hours |
+| assigned | assignee | Start work |
+| in progress | assignee | Send to review |
+| review | creator | Mark done |
+
+There is no Assign button. When bidding closes, the API assigns the lowest bid that still fits that person's free hours. If nobody fits, the task stays **bidding closed** and the bid list stays visible. A timer retries that assignment when capacity frees up.
+
+A bid form shows max capacity, current workload, and hours left. The hours field cannot go above the hours left.
+
+## Live updates
+
+The page opens a Socket.IO connection to `VITE_BACKEND_URL` with `withCredentials: true`. After a task or bid changes, the server emits `changed` with `{ taskId }`. The board, an open task, and the dashboard reload from the API. The event does not carry the full row.
+
+## Why the rules live in the database
+
+These rules are enforced in Postgres, not only in the page:
+
+- A person cannot bid on their own task.
+- A bid that would push them over `max_capacity_hours` is rejected.
+- A bid cannot be placed after bidding is closed, or after the deadline.
 - A task status can only move one step forward.
-- One user can place only one bid on a task.
+- One person can place only one bid on a task.
 
-The database is the last place every write goes through. The API, a script, or a future client all hit the same trigger and the same unique index. Putting the rule only in `placeBid` would leave a direct `INSERT` able to break it. The capacity check also locks the user row inside the trigger, so two bids submitted at the same moment cannot both pass when only one of them fits.
+The database is the last place every write goes through, including the deadline timer. A check that lived only in the page could be skipped by a direct insert. The capacity check locks the user row, so two bids at the same moment cannot both pass when only one fits.
 
-`placeBid` still checks that the ids and hours are well formed, then inserts. Postgres raises the business-rule errors. The API turns those exception strings into 400 or 409 responses.
+The page still checks that a form is filled in. Postgres raises the business-rule errors, and the API turns them into 400 or 409 responses, which the page shows.
 
-## How `/tasks/:id/assign` stays atomic
+The trade-off is that the rule is not visible in the React code. Changing it means a migration, and the message on screen has to match the database error text.
 
-`POST /tasks/:id/assign` picks the assignee inside one database transaction. Workload is not a stored number. It is the `user_workloads` view: the sum of `hours_offered` on tasks already in `assigned`, `in_progress`, or `review`. Setting `tasks.assigned_to` is what changes that sum.
+## How assignment stays atomic
 
-Inside the transaction the handler:
+Workload is not a stored number. It is the `user_workloads` view: the sum of bid hours on tasks already in `assigned`, `in_progress`, or `review`. Setting `tasks.assigned_to` is what changes that sum.
 
-1. Locks the task row (`SELECT ... FOR UPDATE`). A second assign of the same task waits here.
-2. Locks that task's bids, ordered by lowest hours, then earliest bid.
-3. Locks every bidder's user row, in user id order, before reading capacity.
-4. Walks the bids from lowest to highest. For each bidder it adds this bid's hours to the hours already on their assigned work. If that total is above `max_capacity_hours`, it skips them and tries the next bid.
-5. Writes one `UPDATE`: status becomes `assigned` and `assigned_to` is the first bidder who still fits.
-6. If the task has no bids, it returns 409 `task has no bids`. If nobody still fits, it returns 409 `no bidder has enough remaining capacity` and changes no rows.
+Closing bidding, the deadline timer, and `POST /tasks/:id/assign` pick the winner inside one database transaction:
 
-If any statement throws, the transaction rolls back, so the status and the assignee cannot be saved separately.
+1. Lock the task row. A second assign of the same task waits.
+2. Lock that task's bids, lowest hours first, then earliest bid.
+3. Lock every bidder's user row, in user id order, before reading capacity.
+4. Walk the bids from lowest to highest. Skip anyone whose current workload plus this bid is over `max_capacity_hours`.
+5. Write one update: status becomes `assigned` and `assigned_to` is the first bidder who still fits.
+6. If there are no bids, or nobody still fits, no assignee is written and the task stays `bidding_closed`.
 
-Two assigns on different tasks can want the same person's last free hours. Both lock that user row before they read remaining capacity, and they keep the lock until commit. The second call waits. After the first commit, its capacity query sees the new assignment. If the person only had room for one task, the second call skips them and either assigns the next bidder or returns 409. Locking users in id order keeps two transactions from locking the same people in opposite orders.
+If a statement throws, the transaction rolls back, so the status and the assignee cannot be saved separately.
 
-## Trade-offs
+Two tasks can want the same person's last free hours at once. Both lock that user row before they read capacity, and they keep the lock until commit. The second waits, then sees the first assignment. If the person only had room for one task, the second skips them. Locking users in id order keeps the two transactions from locking the same people in opposite orders.
 
-The controller no longer shows the full rule. You have to read the bid-insert migration and the status trigger next to the TypeScript. Changing a rule means a new migration, which is slower than editing a function, and the API message has to stay in step with the `RAISE EXCEPTION` text. Triggers are also harder to see in a stack trace than a normal `if` in the controller. What you get back is one definition of the rule that still holds when the application code is bypassed.
+## Audit log
 
-# React + TypeScript + Vite
+`audit_log` records a row after every task **status** change: who did it, the old status, and the new status. The API sets `app.user_id` for that transaction before the update. On a deadline close, the logged person is the task creator.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+Creating a task, placing a bid, and the `assigned_to` value itself are not separate audit rows. The status change to `assigned` is.
