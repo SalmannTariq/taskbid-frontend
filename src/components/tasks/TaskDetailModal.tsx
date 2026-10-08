@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { assignTask, errorMessage, listBids, placeBid, updateTaskStatus, userWorkload } from "../../api";
+import { errorMessage, listBids, placeBid, updateTaskStatus, userWorkload } from "../../api";
 import { useSockets } from "../../hooks/useSockets";
 import type { BidType } from "../../types/bid.types";
 import type { TaskType } from "../../types/task.types";
@@ -132,11 +132,7 @@ export function TaskDetailModal({
     setStatusSaving(true);
     setStatusError(null);
     try {
-      if (action.run === "assign") {
-        await assignTask(task.id, userId);
-      } else {
-        await updateTaskStatus(task.id, action.status, userId);
-      }
+      await updateTaskStatus(task.id, action.status, userId);
       await onBidPlaced();
     } catch (err: unknown) {
       setStatusError(errorMessage(err, "Could not update the status."));
