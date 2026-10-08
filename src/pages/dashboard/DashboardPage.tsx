@@ -64,7 +64,7 @@ export function DashboardPage() {
           </article>
 
           <article className="dash-card">
-            <h2>Top 3 by tasks completed</h2>
+            <h2>Top 3 Users by tasks completed</h2>
             {stats.topUsers.length === 0 ? <p className="muted">No completed tasks yet.</p> : null}
             <ol className="plain-list">
               {stats.topUsers.map((user) => (
